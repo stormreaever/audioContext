@@ -1,6 +1,7 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var oscillator = audioCtx.createOscillator();
 var gainNode = audioCtx.createGain();
+var distortion = audioCtx.createWaveShaper();
 
 var audioPlaying = false;
 
@@ -48,8 +49,12 @@ function cycleScale() {
 	scale = scales[scaleIndex];
 }
 
+distortion.curve = makeDistortionCurve(400);
+distortion.oversample = '4x';
+
 // connect nodes together
-oscillator.connect(gainNode);
+oscillator.connect(distortion);
+distortion.connect(gainNode);
 gainNode.connect(audioCtx.destination);
 
 // play some notes
@@ -94,7 +99,7 @@ setInterval(
 		if (audioPlaying){
 			playRandomNote();
 		}
-	}, 500
+	}, 330
 );
 
 function playRandomNote() {
@@ -115,3 +120,21 @@ function playRandomNote() {
 function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }
+
+
+
+// ----- Distortion
+
+function makeDistortionCurve(amount) {
+  var k = typeof amount === 'number' ? amount : 50,
+    n_samples = 44100,
+    curve = new Float32Array(n_samples),
+    deg = Math.PI / 180,
+    i = 0,
+    x;
+  for ( ; i < n_samples; ++i ) {
+    x = i * 2 / n_samples - 1;
+    curve[i] = ( 3 + k ) * x * 20 * deg / ( Math.PI + k * Math.abs(x) );
+  }
+  return curve;
+};
