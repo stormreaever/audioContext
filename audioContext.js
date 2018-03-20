@@ -1,0 +1,117 @@
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+var oscillator = audioCtx.createOscillator();
+var gainNode = audioCtx.createGain();
+
+var audioPlaying = false;
+
+var scales = [
+	[
+		// pentatonic major
+		261.626, // C
+		293.665, // D
+		329.628, // E
+		391.995, // G
+		440.000  // A
+
+	],
+	[
+		// C major
+		261.626, // C
+		293.665, // D
+		329.628, // E
+		349.228, // F
+		391.995, // G
+		440.000, // A
+		493.883  // B
+
+	],
+	[
+		// C minor
+		220.000, // A
+		246.942, // B
+		261.626, // C
+		293.665, // D
+		329.628, // E
+		349.228, // F
+		391.995  // G
+
+	]
+]
+
+var scaleIndex = 0;
+var scale = scales[scaleIndex];
+
+function cycleScale() {
+	if (scaleIndex ++ >= scales.length - 1) {
+		scaleIndex = 0;
+	}
+	scale = scales[scaleIndex];
+}
+
+// connect nodes together
+oscillator.connect(gainNode);
+gainNode.connect(audioCtx.destination);
+
+// play some notes
+oscillator.type = 'sine';
+oscillator.frequency.linearRampToValueAtTime(220, audioCtx.currentTime + 0.05);
+
+// start "playing" at very low volume
+gainNode.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.04);
+oscillator.start(0);
+
+function toggleAudio() {
+	audioPlaying = !audioPlaying;
+	if (!audioPlaying) {
+		stopAudio();
+	}
+}
+
+function triggerOnce() {
+	startAudio(0);
+
+	// not stopping creates a continuous stream of music -- no "notes"
+	// or long, blending notes
+	if (getRandomInt(2) == 1) {
+		setTimeout(stopAudio, 450); // this affects the note length
+	}
+}
+
+function startAudio() {
+	gainNode.gain.exponentialRampToValueAtTime(
+		1, audioCtx.currentTime + 0.04
+	)
+}
+
+function stopAudio() {
+  gainNode.gain.exponentialRampToValueAtTime(
+    0.00001, audioCtx.currentTime + 0.04
+  )
+}
+
+setInterval(
+	function(){
+		if (audioPlaying){
+			playRandomNote();
+		}
+	}, 500
+);
+
+function playRandomNote() {
+	// change note freq to be a random value from our scale
+	var newNote = scale[getRandomInt(scale.length)] / 2;
+	if (getRandomInt(2) == 1) {
+		newNote = newNote / 2;
+	}
+	// oscillator.frequency.value = newNote;
+	oscillator.frequency.linearRampToValueAtTime(newNote, audioCtx.currentTime + 0.05);
+
+	// trigger half the time
+	if (getRandomInt(4) < 3) {
+		triggerOnce();
+	}
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
